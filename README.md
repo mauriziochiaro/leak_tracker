@@ -49,7 +49,6 @@ This project shows how to:
      #define malloc(size)  debug_malloc(size, __FILE__, __LINE__)
      #define realloc(ptr, size) debug_realloc((ptr), (size), __FILE__, __LINE__)
      #define free(ptr)     debug_free(ptr, __FILE__, __LINE__)
-     // optionally #define realloc ...
      ```
    - Declares `debug_malloc`, `debug_realloc`, `debug_free`, and `log_memory_leaks`.
 
@@ -103,10 +102,12 @@ It indicates a pointer was allocated under the debug system but freed in a way t
 
 1. **Macro Overrides**  
    - The line `#define malloc(size) debug_malloc(size, __FILE__, __LINE__)` replaces every `malloc` call in your code *after* the header is included.  
+   - The line `#define realloc(ptr, size) debug_realloc((ptr), (size), __FILE__, __LINE__)` replaces every `realloc` call in your code *after* the header is included.  
    - `debug_malloc` calls the real `malloc` internally, but also stores metadata (pointer address, size, file, and line) in a global linked list.
+   - `debug_realloc` calls the real `realloc` internally, but also stores metadata (pointer address, size, file, and line) in a global linked list.
 
 2. **Linked List of Allocations**  
-   - Each `debug_malloc` adds an entry for the new pointer.  
+   - Each `debug_malloc` and `debug_realloc` adds an entry for the new pointer.  
    - `debug_free` searches for that pointer in the list, removes the record, and calls the real `free`.  
    - If a pointer is missing from the list, you get a `Warning: Attempt to free unknown pointer ...`.
 
@@ -124,7 +125,7 @@ It indicates a pointer was allocated under the debug system but freed in a way t
 ## Known Limitations
 
 - **Not Thread-Safe**: The tracking code does not lock any mutexes when modifying the global list of allocations. In multi-threaded code, you’d need synchronization.  
-- **System Headers**: If you include `<stdlib.h>` or `<malloc.h>` *after* you define these macros, the compiler can expand the system prototypes as macros and cause build errors. That’s why `leak_tracker.h` includes system headers first.  
+- **System Headers**: If you include `<stdlib.h>`, `<malloc.h>` or `<realloc.h>` *after* you define these macros, the compiler can expand the system prototypes as macros and cause build errors. That’s why `leak_tracker.h` includes system headers first.  
 - **No Bound Checking**: This only tracks allocated pointers, not out-of-bounds writes. For deeper memory debugging, try Valgrind or AddressSanitizer.  
 
 ## License

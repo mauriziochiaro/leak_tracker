@@ -4,7 +4,7 @@
 #include "leak_tracker.h"
 /* 
  * Because of the macros in leak_tracker.h,
- * any call to malloc/free in this file actually
+ * any call to malloc/realloc/free in this file actually
  * calls debug_malloc/debug_realloc/debug_free behind the scenes.
  */
 #define INITIAL_CAPACITY 4
