@@ -103,44 +103,6 @@ static Allocation* find_allocation(void *userPtr, Allocation **prevOut) {
     return NULL;
 }
 
-/*
- * ===============================
- *  SENTINEL MEMORY PROTECTION
- * ===============================
- *
- * Queste funzioni implementano un sistema di sentinels per rilevare buffer overflows 
- * e corruzione della memoria. Il principio è di aggiungere **8 byte di dati noti** 
- * prima e dopo ogni blocco di memoria allocato. Se il programma scrive oltre i limiti 
- * della memoria allocata, i sentinels vengono modificati, segnalando un potenziale errore.
- *
- * --- COME FUNZIONA ---
- *
- * 1) Quando un blocco di memoria viene allocato con `debug_malloc()`:
- *    - Si alloca più memoria del necessario (`size + 2 * SENTINEL_SIZE`).
- *    - Si scrivono **8 byte di sentinella** all'inizio e alla fine.
- *    - Il puntatore restituito al chiamante **esclude i primi 8 byte**, quindi 
- *      il programma non può toccare i sentinels in condizioni normali.
- *
- * 2) Quando un blocco viene liberato con `debug_free()`:
- *    - Prima di chiamare `free()`, `check_sentinels()` verifica che i sentinels 
- *      non siano stati alterati.
- *    - Se i valori sono cambiati, viene stampato un errore segnalando la corruzione 
- *      della memoria e il file/linea di allocazione.
- *
- * 3) Esempio Pratico:
- *  - Caso Normale (Funzionamento Corretto)
- * char *str = (char*)malloc(10);
- * strcpy(str, "Hello");  // Scrivo dentro i limiti
- * free(str);  // Nessun errore, tutto ok!
- * Output: No memory leaks detected.
-
- *  - Caso di Buffer Overflow
- * char *str = (char*)malloc(10);
- * strcpy(str, "HelloWorld!!");  // Scrivo 12 caratteri su 10 allocati!
- * free(str);
- * Output: ERROR: Back sentinel corrupted for pointer 0x55b83c7e2b90 (allocated at test.c:10)
- * Il sistema rileva che ho scritto oltre i 10 byte allocati.
- */
 /* Write sentinel bytes at the front and back of allocated region */
 static void write_sentinels(unsigned char *base, size_t userSize) {
     /* front sentinel: base[0..SENTINEL_SIZE-1] */
@@ -182,9 +144,7 @@ void* debug_malloc(size_t size, const char *file, int line) {
     void *realPtr = malloc(totalSize);
     if (!realPtr) return NULL; /* out of memory */
 
-    /* -------------- NEW FIX: remove from Freed if re-used -------------- */
     remove_from_freed(realPtr);
-    /* -------------------------------------------------------------------- */
     
     LOCK_TRACKER();
 
