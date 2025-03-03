@@ -76,10 +76,15 @@ This produces an executable named `test_code`.
 
 ## Usage
 
-After building:
+After building, run in VSCode Terminal:
 
 ```bash
 ./test_code
+```
+
+Or, right click on main folder, open with Terminal and
+```bash
+.\test_code.exe
 ```
 
 You’ll see:

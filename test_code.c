@@ -69,6 +69,7 @@ void addString(StringList *list, const char *str) {
 void removeString(StringList *list, size_t index) {
     if (index < list->size) {
         free(list->data[index]);
+        list->data[index] = NULL; // Evita dangling pointer
         for (size_t i = index; i < list->size - 1; i++) {
             list->data[i] = list->data[i + 1];
         }
@@ -97,20 +98,23 @@ char* getUserInput(void) {
     size_t bufSize = 256;
     char *buffer = malloc(bufSize);
     if (!buffer) {
-        return NULL;  // Memory allocation failed
+        fprintf(stderr, "Memory allocation failed!\n");
+        return NULL;
     }
     
     printf("Enter a string: ");
-    if (fgets(buffer, bufSize, stdin)) {
-        size_t len = strlen(buffer);
-        if (len > 0 && buffer[len - 1] == '\n') {
-            buffer[len - 1] = '\0';
-        }
-        return buffer; 
+    if (!fgets(buffer, bufSize, stdin)) {
+        fprintf(stderr, "Error reading input!\n");
+        free(buffer);
+        return NULL;
+    }
+
+    size_t len = strlen(buffer);
+    if (len > 0 && buffer[len - 1] == '\n') {
+        buffer[len - 1] = '\0';
     }
     
-    free(buffer);  // Clean up if fgets fails
-    return NULL;
+    return buffer;
 }
 
 int main(void) {
@@ -157,7 +161,19 @@ int main(void) {
 
     freeStringList(&list);
 
+    /* Example: using calloc */
+    char *buf = calloc(5, sizeof(char));
+    strcpy(buf, "Hi"); /* safe, enough space for "Hi\0" */
+
+    /* Print stats so far */
+    log_memory_stats(stdout);
+
+    /* Freed or not Freed? Let's see if we detect leaks. */
+    free(buf);
+
+    /* At the very end, let's see if any leaks remain. */
     log_memory_leaks(stdout);
+    log_memory_stats(stdout);
 
     return 0;
 }
